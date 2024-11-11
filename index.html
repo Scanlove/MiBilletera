@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Gastos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .wallet {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .wallet h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .wallet .balance {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-box.income {
+            color: #28a745;
+        }
+
+        .summary-box.expense {
+            color: #dc3545;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background: #2196F3;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #1976D2;
+        }
+
+        .history {
+            margin-top: 20px;
+        }
+
+        .transaction {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .transaction .amount.income {
+            color: #28a745;
+        }
+
+        .transaction .amount.expense {
+            color: #dc3545;
+        }
+
+        .daily-summary {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .daily-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="wallet">
+            <h2>BILLETERA</h2>
+            <div class="balance">Bs. 0.00</div>
+        </div>
+
+        <div class="summary">
+            <div class="summary-box income">
+                <h3>Total Ingresos</h3>
+                <div class="total-income">Bs. 0.00</div>
+            </div>
+            <div class="summary-box expense">
+                <h3>Total Gastos</h3>
+                <div class="total-expense">Bs. 0.00</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <select id="type">
+                <option value="income">Ingreso</option>
+                <option value="expense">Gasto</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <input type="number" id="amount" placeholder="Monto en Bs." step="0.01">
+        </div>
+
+        <div class="form-group">
+            <input type="text" id="description" placeholder="Descripción">
+        </div>
+
+        <button onclick="addTransaction()">Añadir</button>
+        <button onclick="toggleHistory()">Ver Historial Completo</button>
+
+        <div class="history">
+            <h3>Últimas Transacciones</h3>
+            <div id="transactions"></div>
+        </div>
+
+        <div class="daily-summary" id="dailySummary">
+            <h3>Resumen Diario</h3>
+            <div id="dailyTransactions"></div>
+        </div>
+    </div>
+
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let showingHistory = false;
+
+        function updateDisplay() {
+            const balance = transactions.reduce((acc, t) => 
+                t.type === 'income' ? acc + t.amount : acc - t.amount, 0);
+            
+            const totalIncome = transactions
+                .filter(t => t.type === 'income')
+                .reduce((acc, t) => acc + t.amount, 0);
+            
+            const totalExpense = transactions
+                .filter(t => t.type === 'expense')
+                .reduce((acc, t) => acc + t.amount, 0);
+
+            document.querySelector('.balance').textContent = `Bs. ${balance.toFixed(2)}`;
+            document.querySelector('.total-income').textContent = `Bs. ${totalIncome.toFixed(2)}`;
+            document.querySelector('.total-expense').textContent = `Bs. ${totalExpense.toFixed(2)}`;
+
+            displayTransactions();
+            saveToLocalStorage();
+        }
+
+        function addTransaction() {
+            const type = document.getElementById('type').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value;
+
+            if (isNaN(amount) || amount <= 0 || !description) {
+                alert('Por favor ingresa un monto válido y una descripción');
+                return;
+            }
+
+            const transaction = {
+                type,
+                amount,
+                description,
+                timestamp: new Date().toISOString()
+            };
+
+            transactions.push(transaction);
+            updateDisplay();
+
+            // Limpiar campos
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+        }
+
+        function displayTransactions() {
+            const transactionsDiv = document.getElementById('transactions');
+            const dailyTransactionsDiv = document.getElementById('dailyTransactions');
+            
+            // Mostrar últimas transacciones
+            const recentTransactions = showingHistory ? transactions : transactions.slice(-5);
+            transactionsDiv.innerHTML = recentTransactions.reverse().map(t => `
+                <div class="transaction">
+                    <div>
+                        <div>${t.description}</div>
+                        <small>${new Date(t.timestamp).toLocaleString()}</small>
+                    </div>
+                    <div class="amount ${t.type}">
+                        ${t.type === 'income' ? '+' : '-'} Bs. ${t.amount.toFixed(2)}
+                    </div>
+                </div>
+            `).join('');
+
+            // Agrupar por día para el resumen diario
+            const dailySummary = transactions.reduce((acc, t) => {
+                const date = new Date(t.timestamp).toLocaleDateString();
+                if (!acc[date]) {
+                    acc[date] = { income: 0, expense: 0 };
+                }
+                if (t.type === 'income') {
+                    acc[date].income += t.amount;
+                } else {
+                    acc[date].expense += t.amount;
+                }
+                return acc;
+            }, {});
+
+            dailyTransactionsDiv.innerHTML = Object.entries(dailySummary)
+                .map(([date, summary]) => `
+                    <div class="daily-item">
+                        <strong>${date}</strong>
+                        <div>Ingresos: Bs. ${summary.income.toFixed(2)}</div>
+                        <div>Gastos: Bs. ${summary.expense.toFixed(2)}</div>
+                        <div>Balance: Bs. ${(summary.income - summary.expense).toFixed(2)}</div>
+                    </div>
+                `).join('');
+        }
+
+        function toggleHistory() {
+            showingHistory = !showingHistory;
+            const dailySummary = document.getElementById('dailySummary');
+            dailySummary.style.display = showingHistory ? 'block' : 'none';
+            displayTransactions();
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+        }
+
+        // Inicializar la pantalla
+        updateDisplay();
+    </script>
+</body>
+</html>
