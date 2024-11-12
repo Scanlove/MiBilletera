@@ -5,7 +5,143 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control de Gastos</title>
     <style>
-        /* ... (estilos sin cambios) ... */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .wallet {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .wallet h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .wallet .balance {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-box.income {
+            color: #28a745;
+        }
+
+        .summary-box.expense {
+            color: #dc3545;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+
+        .form-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background: #2196F3;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        button.income {
+            background: #28a745;
+        }
+
+        button.expense {
+            background: #dc3545;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .history {
+            margin-top: 20px;
+        }
+
+        .transaction {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .transaction .amount.income {
+            color: #28a745;
+        }
+
+        .transaction .amount.expense {
+            color: #dc3545;
+        }
+
+        .daily-summary {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .daily-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -57,16 +193,12 @@
         const initialBalance = 0;
 
         // Recuperar transacciones de localStorage sin sobrescribir datos
-        let transactions = JSON.parse(localStorage.getItem('transactions'));
-        if (!transactions) {
-            transactions = [{
-                type: 'income',
-                amount: initialBalance,
-                description: 'Saldo inicial',
-                timestamp: new Date().toISOString()
-            }];
-            saveToLocalStorage(); // Solo guarda si transactions era null
-        }
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [{
+            type: 'income',
+            amount: initialBalance,
+            description: 'Saldo inicial',
+            timestamp: new Date().toISOString()
+        }];
 
         let showingHistory = false;
 
@@ -87,6 +219,7 @@
             document.querySelector('.total-expense').textContent = `Bs. ${totalExpense.toFixed(2)}`;
 
             displayTransactions();
+            saveToLocalStorage();
         }
 
         function addTransaction(type) {
@@ -108,7 +241,6 @@
 
             transactions.push(transaction);
             updateDisplay();
-            saveToLocalStorage();
 
             // Limpiar campos
             document.getElementById('amount').value = '';
